@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 
 import '../theme/colors.dart';
@@ -7,10 +9,11 @@ import '../theme/colors.dart';
 class DuloAvatar extends StatelessWidget {
   final String name;
   final String? imageUrl;
+  final String? dataUrl;
   final double size;
   final bool online;
 
-  const DuloAvatar({super.key, required this.name, this.imageUrl, this.size = 44, this.online = false});
+  const DuloAvatar({super.key, required this.name, this.imageUrl, this.dataUrl, this.size = 44, this.online = false});
 
   static const _palette = <Color>[
     Color(0xFF1594EA),
@@ -34,17 +37,29 @@ class DuloAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.dulo;
     final letter = name.trim().isEmpty ? '?' : String.fromCharCode(name.trim().runes.first).toUpperCase();
-    final Widget inner = (imageUrl != null && imageUrl!.isNotEmpty)
-        ? ClipOval(
-            child: Image.network(
-              imageUrl!,
-              width: size,
-              height: size,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => _letter(letter),
-            ),
-          )
-        : _letter(letter);
+    Widget? memImg;
+    if (dataUrl != null && dataUrl!.contains(',')) {
+      try {
+        final bytes = base64.decode(dataUrl!.substring(dataUrl!.indexOf(',') + 1));
+        memImg = ClipOval(child: Image.memory(bytes, width: size, height: size, fit: BoxFit.cover, gaplessPlayback: true, errorBuilder: (_, __, ___) => _letter(letter)));
+      } catch (_) {}
+    }
+    Widget inner;
+    if (memImg != null) {
+      inner = memImg;
+    } else if (imageUrl != null && imageUrl!.isNotEmpty) {
+      inner = ClipOval(
+        child: Image.network(
+          imageUrl!,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _letter(letter),
+        ),
+      );
+    } else {
+      inner = _letter(letter);
+    }
     if (!online) return inner;
     return Stack(
       clipBehavior: Clip.none,
